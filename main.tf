@@ -4,7 +4,7 @@ provider "google" {
   region      = "us-central1"
 }
 resource "google_compute_instance" "blog" {
-  name         = "default"
+  name         = "default1"
   machine_type = "n1-standard-1"
   zone         = "us-central1-a"
 
