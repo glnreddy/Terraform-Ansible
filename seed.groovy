@@ -1,4 +1,4 @@
-
+#!groovy
 
 job('create_terraform_jobs') {
   parameters {
@@ -21,7 +21,7 @@ job('create_terraform_jobs') {
     textParam 'env_vars', '', 'Multi-line text input containing NAME=VALUE pairs. While not recommend, this is one way to pass auth data eg: `AWS_ACCESS_KEY_ID` & `AWS_SECRET_ACCESS_KEY`'
   }
   scm {
-    github 'glnreddy/Terraform-Ansible'
+    github 'savasw89/tf_pipeline'
   }
   steps {
     dsl {
@@ -29,6 +29,7 @@ job('create_terraform_jobs') {
         folder 'Terraform'
         folder "Terraform/${gh_owner}"
         folder "Terraform/${gh_owner}/${gh_repo}"
+
         def tf_job(job_name, workflow) {
           if (gh_path == '') {
             name = "Terraform/${gh_owner}/${gh_repo}/${job_name}"
@@ -100,6 +101,8 @@ job('create_terraform_jobs') {
                 defaultValue env_vars
                 description ''
               }
+              stringParam('GITHUB_PR_NUMBER', '', '')
+              stringParam('GITHUB_PR_SOURCE_BRANCH', '', '')
             }
             definition {
               cps {
@@ -109,6 +112,7 @@ job('create_terraform_jobs') {
             }
           }
         }
+
         def tf_plan_job = tf_job 'PLAN', """
           withEnv(_env_vars) {
             node {
@@ -118,7 +122,6 @@ job('create_terraform_jobs') {
               setup_tf()
               tf_validate()
               fetch_modules()
-              initialize_remote_state()
               tf_plan()
             }
           }
@@ -143,6 +146,7 @@ job('create_terraform_jobs') {
             }
           }
         }
+
         def tf_apply_job = tf_job 'APPLY', """
           withEnv(_env_vars) {
             node {
@@ -151,7 +155,6 @@ job('create_terraform_jobs') {
               setup_tf()
               tf_validate()
               fetch_modules()
-              initialize_remote_state()
               tf_plan()
               if (slack_notifications) {
                 notify_about_pending_changes()
@@ -167,6 +170,7 @@ job('create_terraform_jobs') {
             scm('* * * * *')
           }
         }
+
         if (create_destroy_job.toBoolean()) {
           def tf_destroy_job = tf_job 'DESTROY', """
             withEnv(_env_vars) {
@@ -176,7 +180,6 @@ job('create_terraform_jobs') {
                 setup_tf()
                 tf_validate()
                 fetch_modules()
-                initialize_remote_state()
                 tf_plan('-destroy')
                 if (slack_notifications) {
                   notify_about_pending_changes()
@@ -187,6 +190,7 @@ job('create_terraform_jobs') {
             }
           """.stripIndent()
         }
+
         def tf_taint_job = tf_job 'TAINT', """
           withEnv(_env_vars) {
             node {
@@ -195,7 +199,6 @@ job('create_terraform_jobs') {
               setup_tf()
               tf_validate()
               fetch_modules()
-              initialize_remote_state()
               tf_taint(taint_resource, taint_module)
               tf_plan()
               if (slack_notifications) {
@@ -206,12 +209,14 @@ job('create_terraform_jobs') {
             }
           }
         """.stripIndent()
+
         tf_taint_job.with {
           parameters {
             stringParam 'taint_resource', '', 'Resource to taint such as aws_instance.foo, see https://www.terraform.io/docs/commands/taint.html'
             stringParam 'taint_module', '', 'Module to taint'
           }
         }
+
         def tf_untaint_job = tf_job 'UNTAINT', """
           withEnv(_env_vars) {
             node {
@@ -220,7 +225,6 @@ job('create_terraform_jobs') {
               setup_tf()
               tf_validate()
               fetch_modules()
-              initialize_remote_state()
               tf_untaint(taint_resource, taint_module)
               tf_plan()
               if (slack_notifications) {
@@ -231,12 +235,14 @@ job('create_terraform_jobs') {
             }
           }
         """.stripIndent()
+
         tf_untaint_job.with {
           parameters {
             stringParam 'taint_resource', '', 'Resource to untaint such as aws_instance.foo, see https://www.terraform.io/docs/commands/taint.html'
             stringParam 'taint_module', '', 'Module to untaint'
           }
         }
+
       '''.stripIndent()
     }
   }
