@@ -298,3 +298,4 @@ def notify_about_pending_changes() {
   def plan_summary = readFile "${gh_path}terraform.plan.summary"
   slackSend channel: "${slack_channel}", color: 'warning', message: "[Terraform] ${env.JOB_NAME} Pending changes: ${plan_summary}\nPlease Confirm/Apply or Abort. <${env.BUILD_URL}/console|Link>"
 }
+
