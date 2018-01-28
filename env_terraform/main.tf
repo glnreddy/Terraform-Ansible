@@ -2,6 +2,8 @@ terraform {
   backend "s3" {}
 }
 
+
+
 provider "aws" {}
 
 resource "aws_instance" "example"  {
