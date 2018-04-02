@@ -15,8 +15,6 @@ job('create_terraform_jobs') {
     stringParam 'tf_arch', 'linux_amd64', 'Terraform arch to install and use'
     stringParam 'tf_sha256', 'f728fa73ff2a4c4235a28de4019802531758c7c090b6ca4c024d48063ab8537b', 'Terraform .zip sha256 sum'
     booleanParam 'create_destroy_job', false, 'Create a DESTROY job for this environment'
-    booleanParam 'slack_notifications', false, 'Send notifications to a slack channel'
-    stringParam 'slack_channel', '', 'Slack channel to send notifications to'
     textParam 'env_vars', '', 'Multi-line text input containing NAME=VALUE pairs. While not recommend, this is one way to pass auth data eg: `AWS_ACCESS_KEY_ID` & `AWS_SECRET_ACCESS_KEY`'
   }
   scm {
@@ -84,16 +82,7 @@ job('create_terraform_jobs') {
                 defaultValue gh_path
                 description ''
               }
-              booleanParameterDefinition {
-                name 'slack_notifications'
-                defaultValue slack_notifications.toBoolean()
-                description ''
-              }
-              wReadonlyStringParameterDefinition {
-                name 'slack_channel'
-                defaultValue slack_channel
-                description ''
-              }
+              
               wReadonlyTextParameterDefinition {
                 name 'env_vars'
                 defaultValue env_vars
@@ -184,59 +173,5 @@ job('create_terraform_jobs') {
                 tf_apply()
               }
             }
-          """.stripIndent()
-        }
-        def tf_taint_job = tf_job 'TAINT', """
-          withEnv(_env_vars) {
-            node {
-              git_checkout()
-              prepare_workspace()
-              setup_tf()
-              tf_validate()
-              fetch_modules()
-              initialize_remote_state()
-              tf_taint(taint_resource, taint_module)
-              tf_plan()
-              if (slack_notifications) {
-                notify_about_pending_changes()
-              }
-              wait_for_user_to_apply()
-              tf_apply()
-            }
-          }
-        """.stripIndent()
-        tf_taint_job.with {
-          parameters {
-            stringParam 'taint_resource', '', 'Resource to taint such as aws_instance.foo, see https://www.terraform.io/docs/commands/taint.html'
-            stringParam 'taint_module', '', 'Module to taint'
-          }
-        }
-        def tf_untaint_job = tf_job 'UNTAINT', """
-          withEnv(_env_vars) {
-            node {
-              git_checkout()
-              prepare_workspace()
-              setup_tf()
-              tf_validate()
-              fetch_modules()
-              initialize_remote_state()
-              tf_untaint(taint_resource, taint_module)
-              tf_plan()
-              if (slack_notifications) {
-                notify_about_pending_changes()
-              }
-              wait_for_user_to_apply()
-              tf_apply()
-            }
-          }
-        """.stripIndent()
-        tf_untaint_job.with {
-          parameters {
-            stringParam 'taint_resource', '', 'Resource to untaint such as aws_instance.foo, see https://www.terraform.io/docs/commands/taint.html'
-            stringParam 'taint_module', '', 'Module to untaint'
-          }
-        }
-      '''.stripIndent()
-    }
-  }
-}
+            """.stripIndent()
+      
