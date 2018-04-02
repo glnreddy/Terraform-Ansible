@@ -8,7 +8,6 @@ if (gh_path != '') {
 
 def _env_vars = env_vars.tokenize()
 
-slack_notifications = slack_notifications.toBoolean()
 
 def _sh(script) {
   _catch_errors {
@@ -101,16 +100,6 @@ def tf_validate() {
     '''.stripIndent()
   }
   _sh './bin/terraform validate'
-}
-
-def tf_taint(name, module) {
-  stage 'taint'
-  _sh "./bin/terraform taint -module=${module} ${name}"
-}
-
-def tf_untaint(name, module) {
-  stage 'untaint'
-  _sh "./bin/terraform untaint -module=${module} ${name}"
 }
 
 def git_checkout() {
@@ -289,12 +278,4 @@ def archive_artifacts(artifacts) {
   ])
 }
 
-def wait_for_user_to_apply() {
-  stage 'prompt user to abort or confirm'
-  input message: 'Run Terraform apply?', ok: 'Confirm/Apply'
-}
 
-def notify_about_pending_changes() {
-  def plan_summary = readFile "${gh_path}terraform.plan.summary"
-  slackSend channel: "${slack_channel}", color: 'warning', message: "[Terraform] ${env.JOB_NAME} Pending changes: ${plan_summary}\nPlease Confirm/Apply or Abort. <${env.BUILD_URL}/console|Link>"
-}
